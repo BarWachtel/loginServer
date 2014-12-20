@@ -9,20 +9,36 @@ var app = express();
 var jwt = require('jsonwebtoken');
 var jwtSecret = 'AFBE234ssSAsas8hjfSECREtsz';
 var portNumber = 9000;
+var db = require('./database.js');
 
+// Parse body - creates request.body (access parameters)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.post('/login', function(req, res) {
+	var userDetails = req.body;
 
-	//Perform user authentication here
-	//Extract username/password from req.query
-	console.log('url: ' + req.url);
-	console.log('query: ' + req.query);
-	console.log('body: ' + req.body);
-	console.log('params: ' + req.params);
+	// Crappy search method for large database
+	var userFound = false;
+	for (var i = 0; i < db.users.length ; i++) {
+		if (db.users[i].getName() === userDetails.username) {
+				console.log('Username found in database');
+				// Username matches, try to authenticate password
+				userFound = true;
+				var user = db.users[i];
 
-	// var params = url.parse(req.url + '?' + req.body, true).query;
-	console.log('username: ' + req.body.username);
-	console.log('password: ' + req.body.password);
+				// I am hashing password outside comparison since theres a
+				// good chance client will submit a hashed password
+				if (user.comparePassword(db.hash(userDetails.password))) {
+					console.log('Password is correct');
+					user.getFriendsList().forEach(console.log);
+				} else {
+					console.log('Password does not match user');
+				}
+				break;
+		}
+	}
+	if (!userFound) {
+		console.log('Username not found in database');
+	}
 
 	var someInfo = {
 		// Looks like an raw format for
