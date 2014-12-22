@@ -4,7 +4,7 @@
 function User(name, password) {
   var _name = name;
   var _password = _hash(password);
-  var _friendsList = ['harry', 'sally', 'robert'];
+  var _friendsList = _users;
   // Added to hash function with user password
   var _salt = null;
 
@@ -27,9 +27,14 @@ function _hash (password) {
 };
 
 function _addUser(userDetails) {
+  var userAdded = false;
   if (!_getUser(userDetails.username)) {
     // Username does not exist in database
+    _users.push(new User(userDetails.username,
+      userDetails.password));
+    userAdded = true;
   }
+  return userAdded;
 }
 
 function _getUser(username) {
