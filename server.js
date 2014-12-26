@@ -3,21 +3,29 @@ var express = require('express');
 var app = express();
 var server = require('http').Server(app);
 var sio = require('socket.io')(server);
+var portNumber = 9000;
 
-var url = require('url');
+// Used to parse POST body
 var bodyParser = require('body-parser');
+// var url = require('url');
+
 //Creates a JWT token and returns it to user
 var jwt = require('jsonwebtoken');
+var jwtSecret = 'AFBE234ssSAsas8hjfSECREtsz';
+var lastTokenServed = null;
 
 // My "Placeholders"
 var db = require('./database.js');
-var jwtSecret = 'AFBE234ssSAsas8hjfSECREtsz';
-var portNumber = 9000;
-var lastTokenServed = null;
+
+/*
+Once mongodb provides basic functionality switch to this
+var db = require('./mongoDatabase.js');
+*/
 
 // Express app
-// Parse body - creates request.body (access parameters)
+// Parse body - creates request.body (access query parameters)
 app.use(bodyParser.urlencoded({ extended: true }));
+
 app.all('*', function(req, res, next) {
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	next();
@@ -30,7 +38,9 @@ app.post('/login', function(req, res) {
 
 	// Crappy search method for large database
 	var userFound = false;
-	for (var i = 0; i < db.users.length ; i++) {
+	for (var i = 0; i < db.users.length ; i++)
+		//db.findUser(userDetails.username)
+
 		if (db.users[i].getName() === userDetails.username) {
 			console.log('Username found in database');
 			// Username matches, try to authenticate password
@@ -108,6 +118,7 @@ app.post('/login', function(req, res) {
 	sio.on('connection', function(socket) {
 		console.log('Client opened websocket connection!!!!');
 		console.log('socket.request._query.token: ' + socket.request._query.token);
+		console.log('socket.id: ' + socket.id);
 		if (lastTokenServed) {
 			// Keep a list of the usernames with tokens assigned to them
 			// and lookup that list to see if token matches username
@@ -122,6 +133,8 @@ app.post('/login', function(req, res) {
 				// socket.get('username', function(err, username) {
 				// 	console.log('socket.get username: ' + username);
 				// });
+
+
 				// Add user token, socket and username to online users (redis cache)
 				// Remove user on logout
 				console.log('Client connecting possess last token served!');
@@ -143,4 +156,15 @@ app.post('/login', function(req, res) {
 		// Check in cache if user token exists,
 		// If so store socket with token - USER IS LOGGED ON
 		return token === lastTokenServed;
+	}
+
+	function attemptUserLogin(userDetails) {
+		var response = {
+			success: false,
+			reason: null
+		}
+		// Check if username exists
+		// Compare passwords
+
+		return response;
 	}
