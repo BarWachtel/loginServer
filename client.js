@@ -21,7 +21,7 @@ function startClient() {
       url: serverAddress + '/register',
       type: 'POST',
       data: $.param({
-        username: $('#username').val(),
+        name: $('#username').val(),
         password: $('#password').val(),
         confirmPassword: $('#confirmPassword').val()
       }),
@@ -48,7 +48,7 @@ function startClient() {
       type: 'POST',
       dataType: 'json',
       data: $.param({
-        username: $('#username').val(),
+        name: $('#username').val(),
         password: $('#password').val()
       }),
       success: function(data, textStatus, jqXHR) {

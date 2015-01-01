@@ -15,12 +15,12 @@ var jwtSecret = 'AFBE234ssSAsas8hjfSECREtsz';
 var lastTokenServed = null;
 
 // My "Placeholders"
-var db = require('./database.js');
+// var db = require('./database.js');
 
 /*
 Once mongodb provides basic functionality switch to this
-var db = require('./mongoDatabase.js');
 */
+var db = require('./mongoDatabase.js');
 
 // Express app
 // Parse body - creates request.body (access query parameters)
@@ -36,42 +36,65 @@ app.all('*', function(req, res, next) {
 app.post('/login', function(req, res) {
 	var userDetails = req.body;
 
-	// Crappy search method for large database
-	var userFound = false;
-	for (var i = 0; i < db.users.length ; i++)
-		//db.findUser(userDetails.username)
+	db.getUser(userDetails.name, function(err, user) {
+		if (err) {
+			console.log('Error occured in getUser.name: ' + userDetails.name);
+			next(err);
+			console.log('Line after next() is executed');
+		} else {
+			if ( user.comparePassword(userDetails.password) ) {
+				console.log('Password is correct');
 
-		if (db.users[i].getName() === userDetails.username) {
-			console.log('Username found in database');
-			// Username matches, try to authenticate password
-			userFound = true;
-			var user = db.users[i];
-
-			if (user.comparePassword
-				( db.hash(userDetails.password) )) {
-					console.log('Password is correct');
-					console.log('All Users in database:');
-					// returning all users in database
-					user.getFriendsList()
-					.forEach(function(user) {
-						console.log('\t' + user.getName());
-					});
-
-					var token = createToken(user.getName());
-					lastTokenServed = token;
-					console.log('token: ' + token);
-					res.contentType('json');
-					res.json({token: token});
-				} else {
-					console.log('Password does not match user');
-				}
-				break;
+				var token = createToken(user.getName());
+				lastTokenServed = token;
+				console.log('token: ' + token);
+				res.contentType('json');
+				res.json({token: token});
+				res.end();
+			} else {
+				console.log('Password does not match user');
+				res.end();
 			}
 		}
-		if (!userFound) {
-			console.log('Username not found in database');
-		}
 	});
+});
+	//
+	// // Crappy search method for large database
+	// var userFound = false;
+	// for (var i = 0; i < db.users.length ; i++)
+	// 	//db.findUser(userDetails.username)
+	//
+	// 	if (db.users[i].getName() === userDetails.username) {
+	// 		console.log('Username found in database');
+	// 		// Username matches, try to authenticate password
+	// 		userFound = true;
+	// 		var user = db.users[i];
+	//
+	// 		if (user.comparePassword
+	// 			( db.hash(userDetails.password) )) {
+	// 				console.log('Password is correct');
+	// 				console.log('All Users in database:');
+	// 				// returning all users in database
+	// 				user.getFriendsList()
+	// 				.forEach(function(user) {
+	// 					console.log('\t' + user.getName());
+	// 				});
+	//
+	// 				var token = createToken(user.getName());
+	// 				lastTokenServed = token;
+	// 				console.log('token: ' + token);
+	// 				res.contentType('json');
+	// 				res.json({token: token});
+	// 			} else {
+	// 				console.log('Password does not match user');
+	// 			}
+	// 			break;
+	// 		}
+	// 	}
+	// 	if (!userFound) {
+	// 		console.log('Username not found in database');
+	// 	}
+	// });
 
 	app.post('/register', function(req, res) {
 		// Example of how to send a simple response to client
