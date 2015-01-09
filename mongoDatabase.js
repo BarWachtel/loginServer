@@ -1,34 +1,13 @@
 var mongoose = require('mongoose');
+var schema = require('./schema');
+
 var dbName = 'users';
 mongoose.connect('mongodb://localhost/' + dbName);
 
-var userSchema = mongoose.Schema({
-  name: String,
-  password: String
-});
-
-userSchema.methods.comparePassword = function (password) {
-  console.log('this.password: ' + this.password);
-  console.log('password: ' + password);
-
-  return this.password === password;
-}
-
-var onlineUserSchema = mongoose.Schema({
-  name: String,
-  socket: String
-});
-
-var userFriendshipSchema = mongoose.Schema({
-  friendship: [String, String]
-});
-
-
 var mongodb = mongoose.connection;
-var User = mongodb.model('User', userSchema);
-var OnlineUser = mongodb.model('OnlineUser', onlineUserSchema);
-var UserFriendship = mongodb.model('UserFriendship', userFriendshipSchema);
-
+var User = mongodb.model('User', schema.user);
+var OnlineUser = mongodb.model('OnlineUser', schema.onlineUser);
+var UserFriendship = mongodb.model('UserFriendship', schema.userFriendship);
 
 mongodb.on('error', console.error.bind('Error connecting to db:' + dbName));
 mongodb.once('open', function(callback) {
@@ -51,34 +30,60 @@ function _getUser(name, callback) {
 }
 
 function _addUser(userDetails, callback) {
-  User.create({name: userDetails.name, password: userDetails.password});
-  var status = true;
-  callback(status);
-}
-
-function findUser(name) {
-  User.findOne({'name': name}, function (err, user) {
-    console.log(user.name);
-  });
-}
-
-function showAllUsersInDb() {
-  User.find(function(err, users) {
+  // Must check if user already exists !!
+  _getUser(userDetails.name, function (err, user) {
     if (err) {
-      console.error('Error occured in User.find');
+      callback(err);
     } else {
-      users.forEach( function(user, index, _users) {
-        console.log(user.toJSON());
-      });
-      // console.log('users:\n' + users);
+      if (user === null) {
+        // No such user exists
+        User.create({name: userDetails.name, password: userDetails.password}, callback);
+      } else {
+        //User found - already exists do not add
+        console.log('user.name: ' + user.name);
+        callback('User already exists');
+      }
     }
   });
 }
 
+
+function _addOnlineUser(user, callback) {
+  _getOnlineUser(user.name, function (err, user) {
+    if (err) {
+      callback(err);
+    } else {
+      if (user === null) {
+        console.log('User is not online, add him');
+        OnlineUser.create({name: user.name, token: user.token}, callback);
+      } else {
+        console.log('User is already online');
+        callback(err);
+      }
+    }
+  });
+}
+
+function _removeOnlineUser(username, callback) {
+  OnlineUser.remove({name: username}, callback);
+}
+
+function _getOnlineUser(username, callback) {
+  OnlineUser.findOne({name: username}, callback);
+}
+
 module.exports = {
   getUser: _getUser,
-  addUser: _addUser
+  addUser: _addUser,
+  getOnlineUser: _getOnlineUser,
+  removeOnlineUser: _removeOnlineUser,
+  addOnlineUser: _addOnlineUser
 }
+
+/*
+mongo methods:
+  - show all documents in collection foo: db.foo.find()
+*/
 
 
 /*

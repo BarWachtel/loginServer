@@ -60,6 +60,8 @@ function startClient() {
           console.log('Login success, calling openWebSocket');
           console.log('data.token: ' + data.token);
           openWebSocket(data.token);
+        } else {
+          console.log(data.reply);
         }
       },
       error: function(jqXHR, textStatus) {
@@ -82,6 +84,15 @@ function openWebSocket(token) {
   socket.on('connect', function(data){
     console.log('Socket connection opened!');
   });
+
+  window.onbeforeunload = function(e) {
+    alert('Navigating away from page');
+    socket.disconnect();
+  };
 }
 
 $(startClient);
+
+// window.onbeforeunload = function(e) {
+//   alert('window.onbeforeunload works');
+// };
