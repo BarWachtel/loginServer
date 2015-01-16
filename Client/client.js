@@ -75,15 +75,24 @@ function startClient() {
 
 function openWebSocket(token) {
   if (socket === null) {
-    console.log('Creating initial websocket!');
-    socket = io.connect('ws://' + serverUrl + ':' + portNumber, {
-      query: 'token=' + token + '&' + 'username=' + $('#username').val()
-    });
+        console.log('Creating initial websocket!');
+        try {
+            socket = io.connect('ws://' + serverUrl + ':' + portNumber, {
+                query: 'token=' + token + '&' + 'username=' + $('#username').val()
+            });
+        } catch (err) {
+            console.error('Error occured opening socket: ' + err);
+        }
   }
 
   socket.on('connect', function(data){
     console.log('Socket connection opened!');
-  });
+    });
+    
+    socket.on('error', function (err) {
+        console.error('Error occured, disconnecting socket');
+        socket.disconnect();
+    });
 
   window.onbeforeunload = function(e) {
     alert('Navigating away from page');
@@ -93,6 +102,4 @@ function openWebSocket(token) {
 
 $(startClient);
 
-// window.onbeforeunload = function(e) {
-//   alert('window.onbeforeunload works');
-// };
+

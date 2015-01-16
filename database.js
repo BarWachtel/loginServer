@@ -1,58 +1,121 @@
-// Just a dummy database, move to mongodb later
+var mongoose = require('mongoose');
+var schema = require('./schema');
 
-//Create the user class
-function User(name, password) {
-  var _name = name;
-  var _password = _hash(password);
-  var _friendsList = _users;
-  // Added to hash function with user password
-  var _salt = null;
+var dbName = 'users';
+mongoose.connect('mongodb://localhost/' + dbName);
 
-  this.getName = function() { return _name; };
-  this.comparePassword = function(password) { return _password === password; };
-  this.getFriendsList = function() { return _friendsList; };
+var mongodb = mongoose.connection;
+var User = mongodb.model('User', schema.user);
+var OnlineUser = mongodb.model('OnlineUser', schema.onlineUser);
+var UserFriendship = mongodb.model('UserFriendship', schema.userFriendship);
+
+mongodb.on('error', console.error.bind('Error connecting to db:' + dbName));
+mongodb.once('open', function (callback) {
+    // Empty OnlineUser collection
+    OnlineUser.remove({}, function (err) {
+        if (err) {
+            console.log('Error occured emptying OnlineUser collection: ' + err);
+        }
+    });
+
+  // console.log('Connection to db:' + dbName + ' established');
+  // var userDetails = {
+  //   name: 'mazza',
+  //   password: 'kamaroi'
+  // };
+  // _addUser(userDetails, function() {
+  //   _getUser(userDetails.name, function(err, user) {
+  //     console.log('user.name: ' + user.name); // this works
+  //   });
+  // });
+});
+
+
+function _getUser(name, callback) {
+  //callback(err, data)
+  User.findOne({'name': name}, callback);
 }
 
-//Weak hash function, outputs a 32bit integer
-function _hash (password) {
-  var hash = 0, i, chr, len;
-  password = password ? password : '';
-  if (password.length == 0) return hash;
-  for (i = 0, len = password.length; i < len; i++) {
-    chr   = password.charCodeAt(i);
-    hash  = ((hash << 5) - hash) + chr;
-    hash |= 0; // Convert to 32bit integer
-  }
-  return hash;
-};
-
-function _addUser(userDetails) {
-  var userAdded = false;
-  if (!_getUser(userDetails.username)) {
-    // Username does not exist in database
-    _users.push(new User(userDetails.username,
-      userDetails.password));
-    userAdded = true;
-  }
-  return userAdded;
-}
-
-function _getUser(username) {
-  var user = null;
-  for (var i = 0 ; i < _users.length ; i++) {
-    if (_users[i].getName() === username) {
-      user = _users[i];
-      break;
+function _addUser(userDetails, callback) {
+  // Must check if user already exists !!
+  _getUser(userDetails.name, function (err, user) {
+    if (err) {
+      callback(err);
+    } else {
+      if (user === null) {
+        // No such user exists
+        User.create({name: userDetails.name, password: userDetails.password}, callback);
+      } else {
+        //User found - already exists do not add
+        console.log('user.name: ' + user.name);
+        callback('User already exists');
+      }
     }
-  };
-  return user;
+  });
 }
 
-var _users = [];
+
+function _addOnlineUser(user, callback) {
+  _getOnlineUser(user.name, function (err, _user) {
+    if (err) {
+      callback(err);
+    } else {
+      if (_user === null) {
+        console.log('User is not online, add him');
+        // These should be added with a time-to-live 
+        OnlineUser.create({name: user.name, token: user.token}, callback);
+      } else {
+        console.log('User is already online');
+        callback(err);
+      }
+    }
+  });
+}
+
+function _removeOnlineUser(username, callback) {
+  OnlineUser.remove({name: username}, callback);
+}
+
+function _getOnlineUser(username, callback) {
+  OnlineUser.findOne({name: username}, callback);
+}
 
 module.exports = {
-  users: _users,
-  hash: _hash,
+  getUser: _getUser,
   addUser: _addUser,
-  getUser: _getUser
+  getOnlineUser: _getOnlineUser,
+  removeOnlineUser: _removeOnlineUser,
+  addOnlineUser: _addOnlineUser
 }
+
+/*
+mongo methods:
+  - show all documents in collection foo: db.foo.find()
+*/
+
+
+/*
+User collection:
+Functions:
+- addUser(userDetails)
+- getUser(username)
+
+onlineUsers collection:
+var onlineUserSchema = mongoose.schema({
+name: String,
+socket: String *socket.id
+});
+Functions:
+- storeOnlineUser(username)
+- removeOnlineUser(username)
+- areOnline()
+
+userFriendship collection:
+var userFriendshipSchema = mongoose.schema({
+friendship: [String, String] *usernames
+});
+Functions:
+- addFriendship([username, username])
+- removeFriendship([username, username])
+- [usernames..] getFriends(username)
+*/
